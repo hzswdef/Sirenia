@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+
+  mysql:
+    image: mysql:8.0.39-debian
+    container_name: "${PROJECT_NAME}_mysql"
+    restart: always
+    ports:
+      - "127.0.0.1:3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=$PROJECT_NAME
+      - MYSQL_DATABASE=$DATABASE_NAME
+      - MYSQL_USER=$DATABASE_USER
+      - MYSQL_PASSWORD=$DATABASE_PASS
+    volumes:
+      - ../../.data/mysql:/var/lib/mysql
+      - ../../.data/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
