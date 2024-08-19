@@ -3,12 +3,14 @@ import nextcord
 from nextcord import Message
 from nextcord.ext import commands
 from nextcord.ext.commands import CommandNotFound
+
+from cord.bot import SireniaBot
 from settings import DISCORD_EMBED_COLORS
 
 
 class Events(commands.Cog):
 
-    def __init__(self, bot):
+    def __init__(self, bot: SireniaBot):
         self.bot = bot
 
     @commands.Cog.listener()
@@ -39,5 +41,5 @@ class Events(commands.Cog):
         raise error
 
 
-async def setup(bot):
+def setup(bot: SireniaBot):
     bot.add_cog(Events(bot))

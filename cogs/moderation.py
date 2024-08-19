@@ -1,12 +1,14 @@
 import nextcord
 
 from nextcord.ext import commands
+
+from cord.bot import SireniaBot
 from settings import DISCORD_GUILD_ID
 
 
 class Moderation(commands.Cog):
 
-    def __init__(self, bot):
+    def __init__(self, bot: SireniaBot):
         self.bot = bot
 
     @nextcord.slash_command(
@@ -40,5 +42,5 @@ class Moderation(commands.Cog):
             await ctx.send('You don\'t have permission to do that!')
 
 
-async def setup(bot):
+def setup(bot: SireniaBot):
     bot.add_cog(Moderation(bot))

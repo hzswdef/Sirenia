@@ -2,6 +2,8 @@ import nextcord
 
 from nextcord.ext import commands
 from datetime import datetime
+
+from cord.bot import SireniaBot
 from tools.level import Level as LevelHandler
 
 
@@ -9,7 +11,7 @@ class Level(commands.Cog):
 
     sessions = {}
 
-    def __init__(self, bot):
+    def __init__(self, bot: SireniaBot):
         self.bot = bot
         self.level_handler = LevelHandler(bot.database)
 
@@ -27,7 +29,7 @@ class Level(commands.Cog):
             self.sessions[member.id] = current_time
 
         # Close session and write the voice activity to database.
-        if before.channel is not None and after.channel is None:
+        elif before.channel is not None and after.channel is None:
             self.level_handler.on_voice_activity(
                 member,
                 self.sessions[member.id],
@@ -41,5 +43,5 @@ class Level(commands.Cog):
         self.level_handler.on_message(message.author)
 
 
-async def setup(bot):
+def setup(bot: SireniaBot):
     bot.add_cog(Level(bot))

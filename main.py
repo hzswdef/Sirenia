@@ -4,7 +4,8 @@ import logging
 
 from os import listdir, getcwd
 from os.path import basename
-from nextcord.ext import commands
+
+from cord.bot import SireniaBot
 from tools.env import Env
 from tools.database import Database
 
@@ -26,14 +27,14 @@ async def main() -> None:
         database=env.DATABASE_NAME,
     )
 
-    bot = commands.Bot(
+    bot = SireniaBot(
+        env=env,
+        database=database,
+        logger=logger,
         command_prefix=env.DISCORD_BOT_PREFIX,
         intents=nextcord.Intents.all(),
         help_command=None,
     )
-    setattr(bot, 'env', env)
-    setattr(bot, 'database', database)
-    setattr(bot, 'logger', logger)
 
     for module in listdir(getcwd() + '/cogs'):
         if not module.endswith('.py'):
