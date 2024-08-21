@@ -7,6 +7,7 @@ from settings import DISCORD_GUILD_ID
 
 
 class Moderation(commands.Cog):
+    """ Moderation commands. """
 
     def __init__(self, bot: SireniaBot):
         self.bot = bot
@@ -27,19 +28,24 @@ class Moderation(commands.Cog):
                 default=1,
             ),
     ):
+        """ Clear specified count of messages on the channel where the command is invoked. """
+
         if count > 100:
             count = 100
 
         try:
             await interaction.channel.purge(limit=count)
-            await interaction.response.send_message(f'Deleted {count} messages.')
+            await interaction.response.send_message(
+                f'Deleted {count} messages.',
+                ephemeral=True,
+                delete_after=5,
+            )
         except nextcord.errors.Forbidden:
-            await interaction.response.send_message('Missing permissions to delete messages.', delete_after=5)
-
-    @clear.error
-    async def clear_error(self, error, ctx):
-        if isinstance(error, commands.MissingPermissions):
-            await ctx.send('You don\'t have permission to do that!')
+            await interaction.response.send_message(
+                'Missing permissions to delete messages.',
+                ephemeral=True,
+                delete_after=5,
+            )
 
 
 def setup(bot: SireniaBot):

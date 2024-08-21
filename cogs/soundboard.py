@@ -21,20 +21,37 @@ class SoundboardPlayEnum(Enum):
 
 
 class Soundboard(commands.Cog):
+    """ Soundboard commands. """
+
     SOUNDBOARD_DIR = getcwd() + '/assets/soundboard/'
 
     def __init__(self, bot: SireniaBot):
         self.bot = bot
 
-    def get_voice_client(self) -> nextcord.VoiceProtocol:
+    def get_voice_client(self) -> nextcord.VoiceClient:
         """ Get the voice client if available. """
 
-        return self.bot.voice_clients[0] if self.bot.voice_clients else None
+        voice_client = self.bot.voice_clients[0] if self.bot.voice_clients else None
 
-    @nextcord.slash_command(
-        name='soundboard_add',
+        if isinstance(voice_client, nextcord.VoiceClient):
+            return voice_client
+
+    @staticmethod
+    async def default_response(interaction: nextcord.Interaction):
+        """ Default success response. """
+
+        await interaction.response.send_message(
+            ':3',
+            ephemeral=True,
+        )
+
+    @nextcord.slash_command(guild_ids=[DISCORD_GUILD_ID])
+    async def soundboard(self, interaction: nextcord.Interaction):
+        pass
+
+    @soundboard.subcommand(
+        name='add',
         description='Upload own soundboard!',
-        guild_ids=[DISCORD_GUILD_ID],
     )
     async def soundboard_add(
             self,
@@ -53,7 +70,17 @@ class Soundboard(commands.Cog):
         """ Upload a user's sound. """
 
         if file.size > 8_000_000:
-            return await interaction.response.send_message('Sorry, max allowed filesize is 8 MB.')
+            return await interaction.response.send_message(
+                'Sorry, max allowed filesize is 8 MB.',
+                ephemeral=True,
+            )
+
+        file_extension = splitext(basename(file.filename))[1]
+        if file_extension not in ('.mp3', '.wav', '.ogg'):
+            return await interaction.response.send_message(
+                'Sorry, only `.mp3`, `.wav`, `.ogg` audio file extensions are supported.',
+                ephemeral=True,
+            )
 
         existing_sound_name = self.bot.database.query(
             "SELECT * FROM `soundboard`"
@@ -61,7 +88,10 @@ class Soundboard(commands.Cog):
             return_output=True,
         )
         if existing_sound_name:
-            return await interaction.response.send_message('Sound with that name already exists.')
+            return await interaction.response.send_message(
+                'Sound with that name already exists.',
+                ephemeral=True,
+            )
 
         tempfile_name = getcwd() + '/' + str(datetime.now().timestamp())
         await file.save(fp=tempfile_name)
@@ -69,14 +99,16 @@ class Soundboard(commands.Cog):
         with open(tempfile_name, "rb", buffering=0) as sound_file:
             sha256 = file_digest(BytesIO(sound_file.read()), "sha256").hexdigest()
 
-        file_extension = splitext(basename(file.filename))[1]
         existing_sha256 = self.bot.database.query(
             "SELECT * FROM `soundboard`"
             f" WHERE `author` = {interaction.user.id} AND `sha256` = '{sha256}'",
             return_output=True,
         )
         if existing_sha256:
-            return await interaction.response.send_message('That sound already exists.')
+            return await interaction.response.send_message(
+                'That sound already exists.',
+                ephemeral=True,
+            )
 
         self.bot.database.query(
             "INSERT INTO `soundboard`"
@@ -121,10 +153,9 @@ class Soundboard(commands.Cog):
 
         return items
 
-    @nextcord.slash_command(
-        name='soundboard_remove',
+    @soundboard.subcommand(
+        name='remove',
         description='Remove uploaded sound.',
-        guild_ids=[DISCORD_GUILD_ID],
     )
     async def soundboard_remove(
             self,
@@ -146,7 +177,10 @@ class Soundboard(commands.Cog):
         )
 
         if not sound:
-            return await interaction.response.send_message(f'{sound_name} sound not found.')
+            return await interaction.response.send_message(
+                f'{sound_name} sound not found.',
+                ephemeral=True,
+            )
 
         remove(self.SOUNDBOARD_DIR + str(sound[0]['id']) + sound[0]['file_extension'])
 
@@ -168,7 +202,10 @@ class Soundboard(commands.Cog):
         user_voice_channel = interaction.user.voice.channel
 
         if user_voice_channel is None:
-            return await interaction.response.send_message('You must join a voice channel first.')
+            return await interaction.response.send_message(
+                'You must join a voice channel first.',
+                ephemeral=True,
+            )
 
         if action == SoundboardPlayEnum.OWN:
             sound = self.bot.database.query(
@@ -186,7 +223,10 @@ class Soundboard(commands.Cog):
             return
 
         if not sound:
-            return await interaction.response.send_message('Please add sound first. Use `/soundboard_add`.')
+            return await interaction.response.send_message(
+                'Please add sound first. Use `/soundboard add`.',
+                ephemeral=True,
+            )
         sound = sound[0]
 
         voice_client = self.get_voice_client()
@@ -198,9 +238,12 @@ class Soundboard(commands.Cog):
             is_connected_before = False
 
         if voice_client.is_playing():
-            return await interaction.response.send_message('Sorry, bot is busy.')
+            return await interaction.response.send_message(
+                'Sorry, bot is busy.',
+                ephemeral=True,
+            )
 
-        await interaction.response.send_message(':3')
+        await self.default_response(interaction)
 
         voice_client.play(nextcord.FFmpegPCMAudio(
             source=getcwd() + '/assets/soundboard/' + str(sound['id']) + sound['file_extension'],
@@ -310,10 +353,48 @@ class Soundboard(commands.Cog):
 
         await self._play_sound(interaction, SoundboardPlayEnum.OWN, sound_name)
 
-    @nextcord.slash_command(
+    @soundboard.subcommand(
+        name='stop',
+        description='Stop playing soundboard.',
+    )
+    async def stop_soundboard(self, interaction: nextcord.Interaction) -> [nextcord.PartialInteractionMessage, None]:
+        """ Play sound from user's own soundboard. """
+
+        user_voice_channel = interaction.user.voice.channel
+
+        if not user_voice_channel:
+            return await interaction.response.send_message(
+                'You have to be in the voice channel.',
+                ephemeral=True,
+            )
+
+        bot_voice_channel = self.get_voice_client()
+
+        if not bot_voice_channel:
+            return await interaction.response.send_message(
+                'I\'m not in the voice channel!',
+                ephemeral=True,
+            )
+
+        if self.bot.user.id not in [member.id for member in user_voice_channel.members]:
+            return await interaction.response.send_message(
+                'I\'m not in your voice channel!',
+                ephemeral=True,
+            )
+
+        if not bot_voice_channel.is_playing():
+            return await interaction.response.send_message(
+                'I\'m not playing any sound!',
+                ephemeral=True,
+            )
+
+        bot_voice_channel.stop()
+
+        await self.default_response(interaction)
+
+    @soundboard.subcommand(
         name='list',
         description='List of your soundboard.',
-        guild_ids=[DISCORD_GUILD_ID],
     )
     async def soundboard_list(self, interaction: nextcord.Interaction) -> nextcord.PartialInteractionMessage:
         """ List of user's soundboard. """
@@ -327,7 +408,8 @@ class Soundboard(commands.Cog):
         if not sounds:
             return await interaction.response.send_message(
                 'Your soundboard is empty.'
-                '\n\nUse `/soundboard_add` to add your own sounds and to use them later!'
+                '\n\nUse `/soundboard add` to add your own sounds and to use them later!',
+                ephemeral=True,
             )
 
         sound_pages = int(len(sounds) / 10) if len(sounds) >= 10 else 1
@@ -366,14 +448,20 @@ class Soundboard(commands.Cog):
         voice_client = self.get_voice_client()
 
         if voice_client:
-            return await interaction.response.send_message('Sorry, I\'m is busy.')
+            return await interaction.response.send_message(
+                'Sorry, I\'m is busy.',
+                ephemeral=True,
+            )
 
         if not interaction.user.voice:
-            return await interaction.response.send_message('You must join a voice channel first.')
+            return await interaction.response.send_message(
+                'You must join a voice channel first.',
+                ephemeral=True,
+            )
 
         await interaction.user.voice.channel.connect()
 
-        await interaction.response.send_message(':3')
+        await self.default_response(interaction)
 
     @nextcord.slash_command(
         name='leave',
@@ -386,14 +474,20 @@ class Soundboard(commands.Cog):
         voice_client = self.get_voice_client()
 
         if not voice_client:
-            return await interaction.response.send_message('I\'m not connected to any voice channel.')
+            return await interaction.response.send_message(
+                'I\'m not connected to any voice channel.',
+                ephemeral=True,
+            )
 
         try:
             await voice_client.disconnect(force=True)
         except nextcord.ClientException:
-            return await interaction.response.send_message('Failed...')
+            return await interaction.response.send_message(
+                'Failed...',
+                ephemeral=True,
+            )
 
-        await interaction.response.send_message(':3')
+        await self.default_response(interaction)
 
 
 def setup(bot: SireniaBot):

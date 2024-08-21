@@ -17,7 +17,7 @@ async def main() -> None:
         datefmt="%Y-%m-%d %H:%M:%S",
         level=logging.INFO,
     )
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger('sirenia')
 
     env = Env()
     database = Database(
@@ -28,9 +28,9 @@ async def main() -> None:
     )
 
     bot = SireniaBot(
+        logger=logger,
         env=env,
         database=database,
-        logger=logger,
         command_prefix=env.DISCORD_BOT_PREFIX,
         intents=nextcord.Intents.all(),
         help_command=None,

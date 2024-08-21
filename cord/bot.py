@@ -7,15 +7,16 @@ from tools.env import Env
 
 
 class SireniaBot(commands.Bot):
+    """ Extended nextcord.ext.commands.Bot with a few useful objects. """
 
     def __init__(
-        self,
-        env: Env,
-        database: Database,
-        logger: Logger,
-        **kwargs,
+            self,
+            logger: Logger,
+            env: Env,
+            database: Database,
+            **kwargs,
     ):
         super().__init__(**kwargs)
+        self.logger = logger
         self.env = env
         self.database = database
-        self.logger = logger
