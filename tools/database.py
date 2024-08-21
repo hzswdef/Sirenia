@@ -1,7 +1,7 @@
-import pymysql
-
-from pymysql.cursors import DictCursor
 from typing import Union
+
+import pymysql
+from pymysql.cursors import DictCursor
 
 
 class Database(object):

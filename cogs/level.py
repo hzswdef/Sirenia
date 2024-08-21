@@ -1,7 +1,7 @@
-import nextcord
-
-from nextcord.ext import commands
 from datetime import datetime
+
+import nextcord
+from nextcord.ext import commands
 
 from cord.bot import SireniaBot
 from settings import DISCORD_GUILD_ID
@@ -31,10 +31,10 @@ class Level(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(
-        self,
-        member: nextcord.Member,
-        before: nextcord.VoiceState,
-        after: nextcord.VoiceState,
+            self,
+            member: nextcord.Member,
+            before: nextcord.VoiceState,
+            after: nextcord.VoiceState,
     ) -> None:
         """ Track user voice channel activity. """
 

@@ -1,13 +1,13 @@
-import nextcord
 import asyncio
 import logging
-
 from os import listdir, getcwd
 from os.path import basename
 
+import nextcord
+
 from cord.bot import SireniaBot
-from tools.env import Env
 from tools.database import Database
+from tools.env import Env
 
 
 async def main() -> None:

@@ -1,4 +1,5 @@
 from nextcord import Member, User
+
 from tools.database import Database
 
 
