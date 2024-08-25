@@ -46,8 +46,8 @@ class Level(commands.Cog):
 
         # Close session and write the voice activity to database.
         elif before.channel is not None and after.channel is None:
-            if member.id not in self.sessions:
-                return None
+            if member.id not in self.sessions.keys():
+                return
 
             self.level_handler.on_voice_activity(
                 member,

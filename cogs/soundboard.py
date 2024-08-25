@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import Enum
 from hashlib import file_digest
 from io import BytesIO
-from os import getcwd, rename, remove
+from os import rename, remove
 from os.path import basename, splitext
 
 import nextcord
@@ -11,7 +11,8 @@ from nextcord.ext import commands
 from soundfile import SoundFile
 
 from cord.bot import SireniaBot
-from settings import DISCORD_GUILD_ID, DISCORD_EMBED_COLORS
+from cord.player import FFmpegPCMAudioCustom
+from settings import DISCORD_EMBED_COLORS, PROJECT_ROOT
 
 
 class SoundboardPlayEnum(Enum):
@@ -22,29 +23,12 @@ class SoundboardPlayEnum(Enum):
 class Soundboard(commands.Cog):
     """ Soundboard commands. """
 
-    SOUNDBOARD_DIR = getcwd() + '/assets/soundboard/'
+    SOUNDBOARD_DIR = PROJECT_ROOT + '/assets/soundboard/'
 
     def __init__(self, bot: SireniaBot):
         self.bot = bot
 
-    def get_voice_client(self) -> nextcord.VoiceClient:
-        """ Get the voice client if available. """
-
-        voice_client = self.bot.voice_clients[0] if self.bot.voice_clients else None
-
-        if isinstance(voice_client, nextcord.VoiceClient):
-            return voice_client
-
-    @staticmethod
-    async def default_response(interaction: nextcord.Interaction):
-        """ Default success response. """
-
-        await interaction.response.send_message(
-            ':3',
-            ephemeral=True,
-        )
-
-    @nextcord.slash_command(guild_ids=[DISCORD_GUILD_ID])
+    @nextcord.slash_command(dm_permission=False)
     async def soundboard(self, interaction: nextcord.Interaction):
         pass
 
@@ -92,7 +76,7 @@ class Soundboard(commands.Cog):
                 ephemeral=True,
             )
 
-        tempfile_name = getcwd() + '/' + str(datetime.now().timestamp())
+        tempfile_name = PROJECT_ROOT + '/' + str(datetime.now().timestamp())
         await file.save(fp=tempfile_name)
 
         with open(tempfile_name, "rb", buffering=0) as sound_file:
@@ -228,7 +212,7 @@ class Soundboard(commands.Cog):
             )
         sound = sound[0]
 
-        voice_client = self.get_voice_client()
+        voice_client = self.bot.voice_client
         is_connected_before = True
 
         if not voice_client:
@@ -242,11 +226,10 @@ class Soundboard(commands.Cog):
                 ephemeral=True,
             )
 
-        await self.default_response(interaction)
+        await self.bot.default_response(interaction)
 
-        voice_client.play(nextcord.FFmpegPCMAudio(
-            source=getcwd() + '/assets/soundboard/' + str(sound['id']) + sound['file_extension'],
-            options='-filter:a "volume=0.10"',
+        voice_client.play(FFmpegPCMAudioCustom(
+            source=PROJECT_ROOT + self.SOUNDBOARD_DIR + str(sound['id']) + sound['file_extension']
         ))
 
         if not is_connected_before:
@@ -279,7 +262,7 @@ class Soundboard(commands.Cog):
     @nextcord.slash_command(
         name='sb',
         description='Play the soundboard!',
-        guild_ids=[DISCORD_GUILD_ID],
+        dm_permission=False,
     )
     async def play_sound(
             self,
@@ -335,7 +318,7 @@ class Soundboard(commands.Cog):
     @nextcord.slash_command(
         name='osb',
         description='Play the own soundboard!',
-        guild_ids=[DISCORD_GUILD_ID],
+        dm_permission=False,
     )
     async def play_own_sound(
             self,
@@ -367,7 +350,7 @@ class Soundboard(commands.Cog):
                 ephemeral=True,
             )
 
-        bot_voice_channel = self.get_voice_client()
+        bot_voice_channel = self.bot.voice_client
 
         if not bot_voice_channel:
             return await interaction.response.send_message(
@@ -389,7 +372,7 @@ class Soundboard(commands.Cog):
 
         bot_voice_channel.stop()
 
-        await self.default_response(interaction)
+        await self.bot.default_response(interaction)
 
     @soundboard.subcommand(
         name='list',
@@ -417,7 +400,7 @@ class Soundboard(commands.Cog):
         message = ''
 
         for i, sound in enumerate(sounds):
-            file = SoundFile(getcwd() + '/assets/soundboard/' + str(sound['id']) + sound['file_extension'])
+            file = SoundFile(PROJECT_ROOT + self.SOUNDBOARD_DIR + str(sound['id']) + sound['file_extension'])
             duration = round(file.frames / file.samplerate)
             duration = "{minutes:02d}:{seconds:02d}".format(
                 minutes=int(duration / 60),
@@ -435,58 +418,6 @@ class Soundboard(commands.Cog):
             embed.set_footer(text=f'Page 1/{sound_pages}')
 
         await interaction.response.send_message(embed=embed)
-
-    @nextcord.slash_command(
-        name='summon',
-        description='Summon me!',
-        guild_ids=[DISCORD_GUILD_ID],
-    )
-    async def summon(self, interaction: nextcord.Interaction) -> [nextcord.PartialInteractionMessage, None]:
-        """ Summon bot to the user's voice channel. """
-
-        voice_client = self.get_voice_client()
-
-        if voice_client:
-            return await interaction.response.send_message(
-                'Sorry, I\'m is busy.',
-                ephemeral=True,
-            )
-
-        if not interaction.user.voice:
-            return await interaction.response.send_message(
-                'You must join a voice channel first.',
-                ephemeral=True,
-            )
-
-        await interaction.user.voice.channel.connect()
-
-        await self.default_response(interaction)
-
-    @nextcord.slash_command(
-        name='leave',
-        description='Leave the channel.',
-        guild_ids=[DISCORD_GUILD_ID],
-    )
-    async def leave(self, interaction: nextcord.Interaction) -> [nextcord.PartialInteractionMessage, None]:
-        """ Summon bot to the user's voice channel. """
-
-        voice_client = self.get_voice_client()
-
-        if not voice_client:
-            return await interaction.response.send_message(
-                'I\'m not connected to any voice channel.',
-                ephemeral=True,
-            )
-
-        try:
-            await voice_client.disconnect(force=True)
-        except nextcord.ClientException:
-            return await interaction.response.send_message(
-                'Failed...',
-                ephemeral=True,
-            )
-
-        await self.default_response(interaction)
 
 
 def setup(bot: SireniaBot):

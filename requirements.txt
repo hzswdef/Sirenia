@@ -2,6 +2,7 @@ nextcord==2.6.0
 nextcord[voice]==2.6.0
 PyNaCl==1.4.0
 soundfile==0.12.1
+yt-dlp==2024.8.6
 pymysql==1.1.1
 cryptography==43.0.0
 python-dotenv==1.0.1

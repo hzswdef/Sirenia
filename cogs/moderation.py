@@ -2,7 +2,6 @@ import nextcord
 from nextcord.ext import commands
 
 from cord.bot import SireniaBot
-from settings import DISCORD_GUILD_ID
 
 
 class Moderation(commands.Cog):
@@ -14,8 +13,8 @@ class Moderation(commands.Cog):
     @nextcord.slash_command(
         name='clear',
         description='Purge specified count of messages.',
-        guild_ids=[DISCORD_GUILD_ID],
         default_member_permissions=8192,
+        dm_permission=False,
     )
     async def clear(
             self,

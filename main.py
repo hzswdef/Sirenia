@@ -1,16 +1,26 @@
 import asyncio
 import logging
-from os import listdir, getcwd
-from os.path import basename
+from glob import glob
+from os import listdir, remove, mkdir
+from os.path import basename, isdir
 
 import nextcord
 
 from cord.bot import SireniaBot
+from settings import PROJECT_ROOT
 from tools.database import Database
 from tools.env import Env
 
 
 async def main() -> None:
+    # Cleanup cached files.
+    if isdir(PROJECT_ROOT + '/.cache'):
+        cached_files = glob(PROJECT_ROOT + '/.cache/*')
+        for cached_file in cached_files:
+            remove(cached_file)
+    else:
+        mkdir(PROJECT_ROOT + '/.cache')
+
     logging.basicConfig(
         format="[{asctime} / {levelname}]: {message}",
         style="{",
@@ -36,7 +46,7 @@ async def main() -> None:
         help_command=None,
     )
 
-    for module in listdir(getcwd() + '/cogs'):
+    for module in listdir(PROJECT_ROOT + '/cogs'):
         if not module.endswith('.py'):
             continue
 
